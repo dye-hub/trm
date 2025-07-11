@@ -58,29 +58,49 @@ def obtener_y_guardar_historial_conversion():
             print("El mercado podría haber estado cerrado o hay un problema de conexión.")
             return
 
-        # Extraemos únicamente la columna de precios de cierre ('Close')
-        historial_cierre = data['Close']
+        # Extraemos únicamente la columna de precios de cierre ('Close') y creamos una copia explícita
+        historial_cierre = data['Close'].copy()
         
-        # Eliminamos filas que no tengan datos
+        # Eliminamos filas que no tengan datos (NaN en alguna de las columnas de tickers)
         historial_cierre.dropna(inplace=True)
+
+        # Si después de eliminar NaNs el dataframe está vacío, no continuar.
+        if historial_cierre.empty:
+            print("\nNo hay datos de cierre disponibles para el período después de limpiar NaNs.")
+            return
         
         # Renombramos las columnas
-        historial_cierre.rename(columns={'USDCOP=X': 'Valor Cierre USD/COP', 'EURCOP=X': 'Valor Cierre EUR/COP'}, inplace=True)
+        # No es estrictamente necesario usar .loc para rename inplace, pero mantenemos consistencia con las asignaciones.
+        historial_cierre.rename(columns={'USDCOP=X': 'Valor Cierre USD/COP',
+                                         'EURCOP=X': 'Valor Cierre EUR/COP'}, inplace=True)
 
-        # Formateamos los valores a dos decimales
-        historial_cierre['Valor Cierre USD/COP'] = historial_cierre['Valor Cierre USD/COP'].round(2)
-        historial_cierre['Valor Cierre EUR/COP'] = historial_cierre['Valor Cierre EUR/COP'].round(2)
+        # Formateamos los valores a dos decimales usando .loc para asegurar que se modifica el DataFrame original
+        # y para evitar SettingWithCopyWarning.
+        historial_cierre.loc[:, 'Valor Cierre USD/COP'] = historial_cierre['Valor Cierre USD/COP'].round(2)
+        historial_cierre.loc[:, 'Valor Cierre EUR/COP'] = historial_cierre['Valor Cierre EUR/COP'].round(2)
 
         # Nombre del archivo de salida personalizado con las fechas
         nombre_archivo = f"historial_divisas_cop_{fecha_inicio.strftime('%Y%m%d')}_a_{fecha_fin.strftime('%Y%m%d')}.xlsx"
 
         # Guardamos el DataFrame en un archivo de Excel.
-        historial_cierre.to_excel(nombre_archivo, sheet_name='HistorialTasasDeCambio')
+        try:
+            historial_cierre.to_excel(nombre_archivo, sheet_name='HistorialTasasDeCambio')
+            print(f"\n¡Éxito! El historial de datos se ha guardado en el archivo: '{nombre_archivo}'")
+            print("\nResumen de los últimos 5 registros guardados:")
+        except ImportError:
+            print(f"\nError: Para guardar el archivo en formato Excel (.xlsx), necesitas la librería 'openpyxl'.")
+            print(f"Por favor, instálala ejecutando: pip install openpyxl")
+            print(f"O instala todas las dependencias con: pip install -r requirements.txt")
+            print(f"\nSi prefieres, puedes modificar el script para guardar en formato CSV, que no requiere 'openpyxl'.")
+            # Opcionalmente, podríamos guardar en CSV como fallback aquí.
+            # nombre_archivo_csv = nombre_archivo.replace('.xlsx', '.csv')
+            # historial_cierre.to_csv(nombre_archivo_csv)
+            # print(f"\nComo alternativa, se ha guardado en formato CSV: '{nombre_archivo_csv}'")
+            return # Salir si no se pudo guardar en Excel y no hay fallback implementado activamente
 
-        print(f"\n¡Éxito! El historial de datos se ha guardado en el archivo: '{nombre_archivo}'")
-        print("\nResumen de los últimos 5 registros guardados:")
         print(historial_cierre.tail().to_string())
 
+    # Este es el manejador general de excepciones para el bloque try principal
     except Exception as e:
         print(f"\nOcurrió un error al procesar la solicitud: {e}")
         print("Asegúrate de tener conexión a internet y las librerías necesarias instaladas.")
