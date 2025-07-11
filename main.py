@@ -58,18 +58,26 @@ def obtener_y_guardar_historial_conversion():
             print("El mercado podría haber estado cerrado o hay un problema de conexión.")
             return
 
-        # Extraemos únicamente la columna de precios de cierre ('Close')
-        historial_cierre = data['Close']
+        # Extraemos únicamente la columna de precios de cierre ('Close') y creamos una copia explícita
+        historial_cierre = data['Close'].copy()
         
-        # Eliminamos filas que no tengan datos
+        # Eliminamos filas que no tengan datos (NaN en alguna de las columnas de tickers)
         historial_cierre.dropna(inplace=True)
+
+        # Si después de eliminar NaNs el dataframe está vacío, no continuar.
+        if historial_cierre.empty:
+            print("\nNo hay datos de cierre disponibles para el período después de limpiar NaNs.")
+            return
         
         # Renombramos las columnas
-        historial_cierre.rename(columns={'USDCOP=X': 'Valor Cierre USD/COP', 'EURCOP=X': 'Valor Cierre EUR/COP'}, inplace=True)
+        # No es estrictamente necesario usar .loc para rename inplace, pero mantenemos consistencia con las asignaciones.
+        historial_cierre.rename(columns={'USDCOP=X': 'Valor Cierre USD/COP',
+                                         'EURCOP=X': 'Valor Cierre EUR/COP'}, inplace=True)
 
-        # Formateamos los valores a dos decimales
-        historial_cierre['Valor Cierre USD/COP'] = historial_cierre['Valor Cierre USD/COP'].round(2)
-        historial_cierre['Valor Cierre EUR/COP'] = historial_cierre['Valor Cierre EUR/COP'].round(2)
+        # Formateamos los valores a dos decimales usando .loc para asegurar que se modifica el DataFrame original
+        # y para evitar SettingWithCopyWarning.
+        historial_cierre.loc[:, 'Valor Cierre USD/COP'] = historial_cierre['Valor Cierre USD/COP'].round(2)
+        historial_cierre.loc[:, 'Valor Cierre EUR/COP'] = historial_cierre['Valor Cierre EUR/COP'].round(2)
 
         # Nombre del archivo de salida personalizado con las fechas
         nombre_archivo = f"historial_divisas_cop_{fecha_inicio.strftime('%Y%m%d')}_a_{fecha_fin.strftime('%Y%m%d')}.xlsx"
