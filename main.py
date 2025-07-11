@@ -83,12 +83,24 @@ def obtener_y_guardar_historial_conversion():
         nombre_archivo = f"historial_divisas_cop_{fecha_inicio.strftime('%Y%m%d')}_a_{fecha_fin.strftime('%Y%m%d')}.xlsx"
 
         # Guardamos el DataFrame en un archivo de Excel.
-        historial_cierre.to_excel(nombre_archivo, sheet_name='HistorialTasasDeCambio')
+        try:
+            historial_cierre.to_excel(nombre_archivo, sheet_name='HistorialTasasDeCambio')
+            print(f"\n¡Éxito! El historial de datos se ha guardado en el archivo: '{nombre_archivo}'")
+            print("\nResumen de los últimos 5 registros guardados:")
+        except ImportError:
+            print(f"\nError: Para guardar el archivo en formato Excel (.xlsx), necesitas la librería 'openpyxl'.")
+            print(f"Por favor, instálala ejecutando: pip install openpyxl")
+            print(f"O instala todas las dependencias con: pip install -r requirements.txt")
+            print(f"\nSi prefieres, puedes modificar el script para guardar en formato CSV, que no requiere 'openpyxl'.")
+            # Opcionalmente, podríamos guardar en CSV como fallback aquí.
+            # nombre_archivo_csv = nombre_archivo.replace('.xlsx', '.csv')
+            # historial_cierre.to_csv(nombre_archivo_csv)
+            # print(f"\nComo alternativa, se ha guardado en formato CSV: '{nombre_archivo_csv}'")
+            return # Salir si no se pudo guardar en Excel y no hay fallback implementado activamente
 
-        print(f"\n¡Éxito! El historial de datos se ha guardado en el archivo: '{nombre_archivo}'")
-        print("\nResumen de los últimos 5 registros guardados:")
         print(historial_cierre.tail().to_string())
 
+    # Este es el manejador general de excepciones para el bloque try principal
     except Exception as e:
         print(f"\nOcurrió un error al procesar la solicitud: {e}")
         print("Asegúrate de tener conexión a internet y las librerías necesarias instaladas.")
